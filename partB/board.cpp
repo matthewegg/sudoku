@@ -34,7 +34,7 @@ class board
 
     private:
         matrix<ValueType> value;
-        vector<vector<vector<int>>> conflicts;
+        vector<vector<vector<bool>>> conflicts;
 
         void updateConflicts(int, int, int);
 };
@@ -45,7 +45,7 @@ class board
  */
 board::board(int sqSize) : value(BoardSize + 1, BoardSize + 1)
 {
-    conflicts.resize(BoardSize + 1, vector<vector<int>>(BoardSize + 1, vector<int>(MaxValue + 1, 0)));
+    conflicts.resize(BoardSize + 1, vector<vector<bool>>(BoardSize + 1, vector<bool>(MaxValue + 1, 0)));
     clear();
 }
 
@@ -93,18 +93,18 @@ void board::updateConflicts(int i, int j, int val)
     // Update conflicts for the old value
     if (oldVal != Blank) {
         for (int k = 0; k < BoardSize; k++) {
-            conflicts[i][k][oldVal]--;
-            conflicts[k][j][oldVal]--;
-            conflicts[3 * (i / 3) + k / 3][3 * (j / 3) + k % 3][oldVal]--;
+            conflicts[i][k][oldVal] = false;
+            conflicts[k][j][oldVal] = false;
+            conflicts[3 * (i / 3) + k / 3][3 * (j / 3) + k % 3][oldVal] = false;
         }
     }
 
     // Update conflicts for the new value
     if (val != Blank) {
         for (int k = 0; k < BoardSize; k++) {
-            conflicts[i][k][val]++;
-            conflicts[k][j][val]++;
-            conflicts[3 * (i / 3) + k / 3][3 * (j / 3) + k % 3][val]++;
+            conflicts[i][k][val] = true;
+            conflicts[k][j][val] = true;
+            conflicts[3 * (i / 3) + k / 3][3 * (j / 3) + k % 3][val] = true;
         }
     }
 }
@@ -222,7 +222,7 @@ void board::printConflicts() {
             cout << "Cell (" << i << ", " << j << "): ";
 
             // Print the conflicts for the cell
-            for (int conflict : conflicts[i][j]) {
+            for (bool conflict : conflicts[i][j]) {
                 cout << conflict << " ";
             }
 
