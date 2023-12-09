@@ -1,5 +1,5 @@
 // Matthew Egg and Charles Daigle
-// EECE 2560 Project 4 - Part A
+// EECE 2560 Project 4 - Part B
 
 #include <iostream>
 #include <vector>
@@ -28,10 +28,13 @@ class board
         void setCell(int, int, int);
         void clearCell(int, int);
         bool isSolved();
+        bool isSafe(int, int, int);
+        pair<int, int> findEmptyCell();
+        bool solveBoard();
 
     private:
         matrix<ValueType> value;
-        matrix<vector<int>> conflicts;
+        vector<vector<vector<int>>> conflicts;
 
         void updateConflicts(int, int, int);
 };
@@ -40,8 +43,9 @@ class board
  * @param sqSize The size of the board
  * @return None
  */
-board::board(int sqSize) : value(BoardSize + 1, BoardSize + 1), conflicts(BoardSize + 1, BoardSize + 1)
+board::board(int sqSize) : value(BoardSize + 1, BoardSize + 1)
 {
+    conflicts.resize(BoardSize + 1, vector<vector<int>>(BoardSize + 1, vector<int>(MaxValue + 1, 0)));
     clear();
 }
 
@@ -82,34 +86,25 @@ void board::initialize(ifstream &fin)
  * @param val The value of the cell
  * @return None
  */
-void board::updateConflicts(int i, int j, int val) {
-    // Clear the conflicts for the cell (i, j)
-    conflicts[i][j].clear();
+void board::updateConflicts(int i, int j, int val)
+{
+    int oldVal = value[i][j];
 
-    // Iterate over the cells in the same row as (i, j)
-    for (int col = 1; col <= BoardSize; ++col) {
-        if (value[i][col] != Blank && col != j) {
-            conflicts[i][j].push_back(value[i][col]);
+    // Update conflicts for the old value
+    if (oldVal != Blank) {
+        for (int k = 0; k < BoardSize; k++) {
+            conflicts[i][k][oldVal]--;
+            conflicts[k][j][oldVal]--;
+            conflicts[3 * (i / 3) + k / 3][3 * (j / 3) + k % 3][oldVal]--;
         }
     }
 
-    // Iterate over the cells in the same column as (i, j)
-    for (int row = 1; row <= BoardSize; ++row) {
-        if (value[row][j] != Blank && row != i) {
-            conflicts[i][j].push_back(value[row][j]);
-        }
-    }
-
-    // Determine the square that (i, j) is in
-    int squareStartRow = (i - 1) / SquareSize * SquareSize + 1;
-    int squareStartCol = (j - 1) / SquareSize * SquareSize + 1;
-
-    // Iterate over the cells in the same square
-    for (int row = squareStartRow; row < squareStartRow + SquareSize; ++row) {
-        for (int col = squareStartCol; col < squareStartCol + SquareSize; ++col) {
-            if (value[row][col] != Blank && !(row == i && col == j)) {
-                conflicts[i][j].push_back(value[row][col]);
-            }
+    // Update conflicts for the new value
+    if (val != Blank) {
+        for (int k = 0; k < BoardSize; k++) {
+            conflicts[i][k][val]++;
+            conflicts[k][j][val]++;
+            conflicts[3 * (i / 3) + k / 3][3 * (j / 3) + k % 3][val]++;
         }
     }
 }
@@ -236,6 +231,68 @@ void board::printConflicts() {
     }
 }
 
+bool board::isSafe(int row, int col, int num) {
+    // Check row and column conflicts
+    for (int i = 1; i <= BoardSize; i++) {
+        if (i != col && value[row][i] == num) {
+            return false;
+        }
+        if (i != row && value[i][col] == num) {
+            return false;
+        }
+    }
+
+    // Check 3x3 square conflicts
+    int squareStartRow = (row - 1) / SquareSize * SquareSize + 1;
+    int squareStartCol = (col - 1) / SquareSize * SquareSize + 1;
+    for (int i = squareStartRow; i < squareStartRow + SquareSize; i++) {
+        for (int j = squareStartCol; j < squareStartCol + SquareSize; j++) {
+            if (i != row && j != col && value[i][j] == num) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+pair<int, int> board::findEmptyCell() {
+    // Find an unassigned cell
+    for (int row = 1; row <= BoardSize; row++) {
+        for (int col = 1; col <= BoardSize; col++) {
+            if (isBlank(row, col)) {
+                return make_pair(row, col);
+            }
+        }
+    }
+
+    // If no unassigned cell was found, return a pair of -1, -1
+    return make_pair(-1, -1);
+}
+
+bool board::solveBoard() {
+    pair<int, int> emptyCell = findEmptyCell();
+
+    // If there are no empty cells, the Sudoku puzzle is solved
+    if (emptyCell.first == -1 && emptyCell.second == -1) {
+        return true;
+    }
+
+    for (int num = MinValue; num <= MaxValue; num++) {
+        if (isSafe(emptyCell.first, emptyCell.second, num)) {
+            setCell(emptyCell.first, emptyCell.second, num);
+            updateConflicts(emptyCell.first, emptyCell.second, num);
+            if (solveBoard()) {
+                return true;
+            }
+            clearCell(emptyCell.first, emptyCell.second);
+            updateConflicts(emptyCell.first, emptyCell.second, Blank);
+        }
+    }
+
+    return false;
+}
+
 int main()
 {
     ifstream fin("sudoku.txt");
@@ -251,6 +308,9 @@ int main()
         while (fin && fin.peek() != 'Z')
         {
             b1.initialize(fin);
+            b1.print();
+            b1.printConflicts();
+            b1.solveBoard();
             b1.print();
             b1.printConflicts();
             if (b1.isSolved())
