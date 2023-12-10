@@ -9,6 +9,7 @@
 using namespace std;
 
 typedef int ValueType;
+int callCount = 0;
 const int Blank = -1;
 const int SquareSize = 3;
 const int BoardSize = SquareSize * SquareSize;
@@ -43,7 +44,7 @@ private:
  * @param sqSize The size of the board
  * @return None
 */
-board::board(int sqSize) : value(BoardSize + 1, BoardSize + 1), conflicts(BoardSize + 1, vector<vector<int>>(BoardSize + 1, vector<int>(MaxValue + 1, 0)))
+board::board(int sqSize) : value(BoardSize + 1, BoardSize + 1), conflicts(BoardSize + 1, vector<vector<int>>(BoardSize + 1, vector<int>(MaxValue + 1, 0)))  // BoardSize+1 by BoardSize+1 matrix, initialized to 0
 {
     clear();
 }
@@ -57,13 +58,13 @@ void board::clear()
     for (int i = 1; i <= BoardSize; i++)
         for (int j = 1; j <= BoardSize; j++)
         {
-            value[i][j] = Blank;
+            value[i][j] = Blank;    // Sets all cells to blank
         }
 
     for (int i = 1; i <= BoardSize; i++)
         for (int j = 1; j <= BoardSize; j++)
             for (int k = 1; k <= MaxValue; k++)
-                conflicts[i][j][k] = 0;
+                conflicts[i][j][k] = 0; // Sets all conflicts to 0
 }
 
 /** @brief Initializes the board
@@ -73,13 +74,13 @@ void board::clear()
 void board::initialize(ifstream &fin)
 {
     char ch;
-    clear();
+    clear();    // Clears the board
     for (int i = 1; i <= BoardSize; i++)
         for (int j = 1; j <= BoardSize; j++)
         {
-            fin >> ch;
-            if (ch != '.')
-                setCell(i, j, ch - '0');
+            fin >> ch;  // Reads from file
+            if (ch != '.')  // If the character is not a period, set the cell to the character
+                setCell(i, j, ch - '0');    // Converts the character to an integer
         }
 }
 
@@ -94,16 +95,16 @@ void board::updateConflicts(int i, int j, int val, int increment)
 {
     for (int k = 1; k <= BoardSize; k++)
     {
-        conflicts[i][k][val] += increment;
-        conflicts[k][j][val] += increment;
+        conflicts[i][k][val] += increment;  // Increments the row conflicts
+        conflicts[k][j][val] += increment;  // Increments the column conflicts
     }
 
-    int rowStart = 3 * ((i - 1) / 3) + 1;
-    int colStart = 3 * ((j - 1) / 3) + 1;
+    int rowStart = 3 * ((i - 1) / 3) + 1;   // Calculates the starting row of the square
+    int colStart = 3 * ((j - 1) / 3) + 1;   // Calculates the starting column of the square
 
     for (int row = rowStart; row < rowStart + SquareSize; row++)
         for (int col = colStart; col < colStart + SquareSize; col++)
-            conflicts[row][col][val] += increment;
+            conflicts[row][col][val] += increment;  // Increments the square conflicts
 }
 
 /** @brief Undoes changes to the conflicts matrix
@@ -115,7 +116,7 @@ void board::updateConflicts(int i, int j, int val, int increment)
 */
 void board::undoChanges(int i, int j, int val, int increment)
 {
-    updateConflicts(i, j, val, -increment);
+    updateConflicts(i, j, val, -increment);   // Decrements the conflicts
 }
 
 /** @brief Sets a cell to a value
@@ -129,11 +130,11 @@ void board::setCell(int i, int j, int val)
     int oldVal = value[i][j];
     value[i][j] = val;
 
-    if (oldVal != Blank)
-        undoChanges(i, j, oldVal, 1);
+    if (oldVal != Blank)    // If the old value is not blank, undo changes
+        undoChanges(i, j, oldVal, 1);   // Undoes changes to the conflicts matrix
 
-    if (val != Blank)
-        updateConflicts(i, j, val, 1);
+    if (val != Blank)   // If the new value is not blank, update conflicts
+        updateConflicts(i, j, val, 1);  // Updates the conflicts matrix
 }
 
 /** @brief Clears a cell
@@ -143,10 +144,10 @@ void board::setCell(int i, int j, int val)
 */
 void board::clearCell(int i, int j)
 {
-    int val = value[i][j];
-    value[i][j] = Blank;
+    int val = value[i][j];  // Gets the value of the cell
+    value[i][j] = Blank;    // Sets the cell to blank
     if (val != Blank)
-        undoChanges(i, j, val, 1);
+        undoChanges(i, j, val, 1);  // Undoes changes to the conflicts matrix
 }
 
 /** @brief Checks if a cell is blank
@@ -156,7 +157,7 @@ void board::clearCell(int i, int j)
 */
 bool board::isBlank(int i, int j)
 {
-    return (value[i][j] == Blank);
+    return (value[i][j] == Blank);  // Returns true if the cell is blank, false otherwise
 }
 
 /** @brief Gets the value of a cell
@@ -167,9 +168,9 @@ bool board::isBlank(int i, int j)
 ValueType board::getCell(int i, int j)
 {
     if (i >= 1 && i <= BoardSize && j >= 1 && j <= BoardSize)
-        return value[i][j];
+        return value[i][j]; // Returns the value of the cell
     else
-        throw rangeError("bad value in getCell");
+        throw rangeError("bad value in getCell");   // Throws an error if the cell is out of range
 }
 
 /** @brief Checks if the board is solved
@@ -184,7 +185,7 @@ bool board::isSolved()
         {
             if (isBlank(i, j))
             {
-                return false;
+                return false;   // Returns false if the board is not solved
             }
         }
     }
@@ -202,27 +203,27 @@ void board::print()
     {
         if ((i - 1) % SquareSize == 0)
         {
-            cout << " -";
+            cout << " -";   // Prints the top of the square
             for (int j = 1; j <= BoardSize; j++)
-                cout << "---";
-            cout << "-" << endl;
+                cout << "---";  // Prints the top of the square
+            cout << "-" << endl;    // Prints the top of the square
         }
         for (int j = 1; j <= BoardSize; j++)
         {
             if ((j - 1) % SquareSize == 0)
-                cout << "|";
+                cout << "|";    // Prints the side of the square
             if (!isBlank(i, j))
                 cout << " " << getCell(i, j) << " ";
             else
                 cout << "   ";
         }
-        cout << "|" << endl;
+        cout << "|" << endl;    // Prints the side of the square
     }
 
-    cout << " -";
+    cout << " -";   // Prints the bottom of the square
     for (int j = 1; j <= BoardSize; j++)
-        cout << "---";
-    cout << "-" << endl;
+        cout << "---";  // Prints the bottom of the square
+    cout << "-" << endl;    // Prints the bottom of the square
 }
 
 /** @brief Prints the conflicts matrix
@@ -236,9 +237,9 @@ void board::printConflicts()
     {
         for (int j = 1; j <= BoardSize; j++)
         {
-            cout << "Cell (" << i << ", " << j << "): ";
+            cout << "Cell (" << i << ", " << j << "): ";    // Prints the cell
             for (int k = 1; k <= MaxValue; k++)
-                cout << conflicts[i][j][k] << " ";
+                cout << conflicts[i][j][k] << " ";  // Prints the conflicts matrix
             cout << endl;
         }
     }
@@ -256,12 +257,12 @@ pair<int, int> board::findEmptyCell()
         {
             if (isBlank(row, col))
             {
-                return make_pair(row, col);
+                return make_pair(row, col); // Returns the row and column of the empty cell
             }
         }
     }
 
-    return make_pair(-1, -1);
+    return make_pair(-1, -1);   // Returns -1, -1 if no empty cell is found
 }
 
 /** @brief Solves the board
@@ -270,11 +271,12 @@ pair<int, int> board::findEmptyCell()
 */
 bool board::solveBoard()
 {
-    pair<int, int> cell = findEmptyCell();
+    callCount++;    // Increments the call count
+    pair<int, int> cell = findEmptyCell();  // Finds an empty cell
 
     if (cell.first == -1 && cell.second == -1)
     {
-        return true;
+        return true;    // Returns true if the board is solved
     }
 
     int i = cell.first;
@@ -282,47 +284,47 @@ bool board::solveBoard()
 
     for (int num = MinValue; num <= MaxValue; num++)
     {
-        if (conflicts[i][j][num] == 0)
+        if (conflicts[i][j][num] == 0)  // If there are no conflicts, set the cell to the number
         {
             setCell(i, j, num);
 
-            if (solveBoard())
+            if (solveBoard())   // If the board is solved, return true
             {
-                return true;
+                return true;    // Returns true if the board is solved
             }
 
-            clearCell(i, j);
+            clearCell(i, j);    // Clears the cell
         }
     }
 
-    return false;
+    return false;   // Returns false if the board is not solved
 }
 
 int main()
 {
-    ifstream fin("sudoku.txt");
+    ifstream fin("sudoku.txt");   // Opens the file
     if (!fin)
     {
-        cerr << "Cannot open sudoku.txt" << endl;
-        exit(1);
+        cerr << "Cannot open sudoku.txt" << endl;   // Prints an error if the file cannot be opened
+        exit(1);    // Exits the program
     }
 
     try
     {
-        board b1(SquareSize);
-        while (fin && fin.peek() != 'Z')
+        board b1(SquareSize);   // Creates a board
+        while (fin && fin.peek() != 'Z')    // While the file is not empty and the ending character isn't encountered
         {
-            b1.initialize(fin);
-            b1.print();
-            b1.printConflicts();
-            b1.solveBoard();
-            b1.print();
-            b1.printConflicts();
-            if (b1.isSolved())
+            b1.initialize(fin); // Initializes the board
+            b1.print(); // Prints the board
+            b1.solveBoard();    // Solves the board
+            if (b1.isSolved())  // If the board is solved, print the board and the number of recursive calls
             {
+                b1.print();
                 cout << "Sudoku board is solved!" << endl;
+                cout << "Number of recursive calls: " << callCount << endl;
+                callCount = 0;
             }
-            else
+            else    // If the board is not solved, print an error message
             {
                 cout << "Sudoku board is not solved." << endl;
             }
@@ -330,8 +332,8 @@ int main()
     }
     catch (indexRangeError &ex)
     {
-        cout << ex.what() << endl;
-        exit(1);
+        cout << ex.what() << endl;  // Prints an error message
+        exit(1);    // Exits the program
     }
 
     return 0;
