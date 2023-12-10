@@ -1,5 +1,5 @@
 // Matthew Egg and Charles Daigle
-// Project 4 - Part B
+// EECE 2560 Project 4 - Part B
 
 #include <iostream>
 #include <vector>
