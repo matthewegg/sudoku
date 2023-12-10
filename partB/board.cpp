@@ -1,4 +1,4 @@
-// Matthew Egg
+// Matthew Egg and Charles Daigle
 // Project 4 - Part B
 
 #include <iostream>
