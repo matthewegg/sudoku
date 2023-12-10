@@ -1,3 +1,6 @@
+// Matthew Egg
+// Project 4 - Part B
+
 #include <iostream>
 #include <vector>
 #include "d_matrix.h"
@@ -36,11 +39,19 @@ private:
     void undoChanges(int, int, int, int);
 };
 
+/** @brief Constructor for board class
+ * @param sqSize The size of the board
+ * @return None
+*/
 board::board(int sqSize) : value(BoardSize + 1, BoardSize + 1), conflicts(BoardSize + 1, vector<vector<int>>(BoardSize + 1, vector<int>(MaxValue + 1, 0)))
 {
     clear();
 }
 
+/** @brief Clears the board
+ * @param None
+ * @return None
+*/
 void board::clear()
 {
     for (int i = 1; i <= BoardSize; i++)
@@ -55,6 +66,10 @@ void board::clear()
                 conflicts[i][j][k] = 0;
 }
 
+/** @brief Initializes the board
+ * @param fin The file to read from
+ * @return None
+*/
 void board::initialize(ifstream &fin)
 {
     char ch;
@@ -68,6 +83,13 @@ void board::initialize(ifstream &fin)
         }
 }
 
+/** @brief Updates the conflicts matrix
+ * @param i The row to update
+ * @param j The column to update
+ * @param val The value to update
+ * @param increment The amount to increment by
+ * @return None
+*/
 void board::updateConflicts(int i, int j, int val, int increment)
 {
     for (int k = 1; k <= BoardSize; k++)
@@ -84,11 +106,24 @@ void board::updateConflicts(int i, int j, int val, int increment)
             conflicts[row][col][val] += increment;
 }
 
+/** @brief Undoes changes to the conflicts matrix
+ * @param i The row to update
+ * @param j The column to update
+ * @param val The value to update
+ * @param increment The amount to increment by
+ * @return None
+*/
 void board::undoChanges(int i, int j, int val, int increment)
 {
     updateConflicts(i, j, val, -increment);
 }
 
+/** @brief Sets a cell to a value
+ * @param i The row to update
+ * @param j The column to update
+ * @param val The value to update
+ * @return None
+*/
 void board::setCell(int i, int j, int val)
 {
     int oldVal = value[i][j];
@@ -101,6 +136,11 @@ void board::setCell(int i, int j, int val)
         updateConflicts(i, j, val, 1);
 }
 
+/** @brief Clears a cell
+ * @param i The row to update
+ * @param j The column to update
+ * @return None
+*/
 void board::clearCell(int i, int j)
 {
     int val = value[i][j];
@@ -109,11 +149,21 @@ void board::clearCell(int i, int j)
         undoChanges(i, j, val, 1);
 }
 
+/** @brief Checks if a cell is blank
+ * @param i The row to check
+ * @param j The column to check
+ * @return True if the cell is blank, false otherwise
+*/
 bool board::isBlank(int i, int j)
 {
     return (value[i][j] == Blank);
 }
 
+/** @brief Gets the value of a cell
+ * @param i The row to get
+ * @param j The column to get
+ * @return The value of the cell
+*/
 ValueType board::getCell(int i, int j)
 {
     if (i >= 1 && i <= BoardSize && j >= 1 && j <= BoardSize)
@@ -122,6 +172,10 @@ ValueType board::getCell(int i, int j)
         throw rangeError("bad value in getCell");
 }
 
+/** @brief Checks if the board is solved
+ * @param None
+ * @return True if the board is solved, false otherwise
+*/
 bool board::isSolved()
 {
     for (int i = 1; i <= BoardSize; i++)
@@ -138,6 +192,10 @@ bool board::isSolved()
     return true;
 }
 
+/** @brief Prints the board
+ * @param None
+ * @return None
+*/
 void board::print()
 {
     for (int i = 1; i <= BoardSize; i++)
@@ -167,6 +225,11 @@ void board::print()
     cout << "-" << endl;
 }
 
+/** @brief Prints the conflicts matrix
+ * @param None
+ * @return None
+ * @note This is for debugging purposes
+*/
 void board::printConflicts()
 {
     for (int i = 1; i <= BoardSize; i++)
@@ -181,6 +244,10 @@ void board::printConflicts()
     }
 }
 
+/** @brief Finds an empty cell
+ * @param None
+ * @return A pair containing the row and column of the empty cell
+*/
 pair<int, int> board::findEmptyCell()
 {
     for (int row = 1; row <= BoardSize; row++)
@@ -197,6 +264,10 @@ pair<int, int> board::findEmptyCell()
     return make_pair(-1, -1);
 }
 
+/** @brief Solves the board
+ * @param None
+ * @return True if the board is solved, false otherwise
+*/
 bool board::solveBoard()
 {
     pair<int, int> cell = findEmptyCell();
