@@ -10,6 +10,8 @@ using namespace std;
 
 typedef int ValueType;
 int callCount = 0;
+int totalCallCount = 0;
+int totalSolved = 0;
 const int Blank = -1;
 const int SquareSize = 3;
 const int BoardSize = SquareSize * SquareSize;
@@ -322,6 +324,8 @@ int main()
                 b1.print();
                 cout << "Sudoku board is solved!" << endl;
                 cout << "Number of recursive calls: " << callCount << endl;
+                totalSolved++;  // Increments the total number of solved boards
+                totalCallCount += callCount;    // Increments the total call count
                 callCount = 0;
             }
             else    // If the board is not solved, print an error message
@@ -335,6 +339,9 @@ int main()
         cout << ex.what() << endl;  // Prints an error message
         exit(1);    // Exits the program
     }
+
+    cout << "Total number of recursive calls: " << totalCallCount << endl; // Prints the total number of recursive calls
+    cout << "Average number of recursive calls: " << totalCallCount / totalSolved << endl;   // Prints the average number of recursive calls
 
     return 0;
 }
