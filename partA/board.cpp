@@ -9,38 +9,39 @@
 using namespace std;
 
 typedef int ValueType;
-const int Blank = -1;   // Indicates that a cell is blank
-const int SquareSize = 3;   //  The number of cells in a small square
-const int BoardSize = SquareSize * SquareSize;  //  The number of cells in the board
-const int MinValue = 1;  //  The minimum digit value that can appear in an empty cell
-const int MaxValue = 9; //  The maximum digit value that can appear in an empty cell
+const int Blank = -1;
+const int SquareSize = 3;
+const int BoardSize = SquareSize * SquareSize;
+const int MinValue = 1;
+const int MaxValue = 9;
 
 class board
 {
-    public:
-        board(int);
-        void clear();
-        void initialize(ifstream &fin);
-        void print();
-        void printConflicts();
-        bool isBlank(int, int);
-        ValueType getCell(int, int);
-        void setCell(int, int, int);
-        void clearCell(int, int);
-        bool isSolved();
+public:
+    board(int);
+    void clear();
+    void initialize(ifstream &fin);
+    void print();
+    void printConflicts();
+    bool isBlank(int, int);
+    ValueType getCell(int, int);
+    void setCell(int, int, int);
+    void clearCell(int, int);
+    bool isSolved();
 
-    private:
-        matrix<ValueType> value;
-        matrix<vector<int>> conflicts;
+private:
+    matrix<ValueType> value;
+    vector<vector<vector<int>>> conflicts;
 
-        void updateConflicts(int, int, int);
+    void undoChanges(int, int, int, int);
+    void updateConflicts(int, int, int, int);
 };
 
-/** @brief Constructor for the board class
+/** @brief Constructor for board class
  * @param sqSize The size of the board
  * @return None
- */
-board::board(int sqSize) : value(BoardSize + 1, BoardSize + 1), conflicts(BoardSize + 1, BoardSize + 1)
+*/
+board::board(int sqSize) : value(BoardSize + 1, BoardSize + 1), conflicts(BoardSize + 1, vector<vector<int>>(BoardSize + 1, vector<int>(MaxValue + 1, 0)))  // BoardSize+1 by BoardSize+1 matrix, initialized to 0
 {
     clear();
 }
@@ -48,189 +49,194 @@ board::board(int sqSize) : value(BoardSize + 1, BoardSize + 1), conflicts(BoardS
 /** @brief Clears the board
  * @param None
  * @return None
- */
+*/
 void board::clear()
 {
     for (int i = 1; i <= BoardSize; i++)
         for (int j = 1; j <= BoardSize; j++)
         {
-            value[i][j] = Blank;
-            conflicts[i][j].clear(); // Clear conflicts for each cell
+            value[i][j] = Blank;    // Sets all cells to blank
         }
+
+    for (int i = 1; i <= BoardSize; i++)
+        for (int j = 1; j <= BoardSize; j++)
+            for (int k = 1; k <= MaxValue; k++)
+                conflicts[i][j][k] = 0; // Sets all conflicts to 0
 }
 
-/** @brief Initializes the board from a text file
- * @param fin The input file stream
+/** @brief Initializes the board
+ * @param fin The file to read from
  * @return None
- */
+*/
 void board::initialize(ifstream &fin)
 {
     char ch;
-    clear();
+    clear();    // Clears the board
     for (int i = 1; i <= BoardSize; i++)
         for (int j = 1; j <= BoardSize; j++)
         {
-            fin >> ch;
-            if (ch != '.')
-                setCell(i, j, ch - '0');
+            fin >> ch;  // Reads from file
+            if (ch != '.')  // If the character is not a period, set the cell to the character
+                setCell(i, j, ch - '0');    // Converts the character to an integer
         }
 }
 
-/** @brief Updates the conflicts for a cell
- * @param i The row of the cell
- * @param j The column of the cell
- * @param val The value of the cell
+/** @brief Updates the conflicts matrix
+ * @param i The row to update
+ * @param j The column to update
+ * @param val The value to update
+ * @param increment The amount to increment by
  * @return None
- */
-void board::updateConflicts(int i, int j, int val) {
-    // Clear the conflicts for the cell (i, j)
-    conflicts[i][j].clear();
-
-    // Iterate over the cells in the same row as (i, j)
-    for (int col = 1; col <= BoardSize; ++col) {
-        if (value[i][col] != Blank && col != j) {
-            conflicts[i][j].push_back(value[i][col]);
-        }
+*/
+void board::updateConflicts(int i, int j, int val, int increment)
+{
+    for (int k = 1; k <= BoardSize; k++)
+    {
+        conflicts[i][k][val] += increment;  // Increments the row conflicts
+        conflicts[k][j][val] += increment;  // Increments the column conflicts
     }
 
-    // Iterate over the cells in the same column as (i, j)
-    for (int row = 1; row <= BoardSize; ++row) {
-        if (value[row][j] != Blank && row != i) {
-            conflicts[i][j].push_back(value[row][j]);
-        }
-    }
+    int rowStart = 3 * ((i - 1) / 3) + 1;   // Calculates the starting row of the square
+    int colStart = 3 * ((j - 1) / 3) + 1;   // Calculates the starting column of the square
 
-    // Determine the square that (i, j) is in
-    int squareStartRow = (i - 1) / SquareSize * SquareSize + 1;
-    int squareStartCol = (j - 1) / SquareSize * SquareSize + 1;
-
-    // Iterate over the cells in the same square
-    for (int row = squareStartRow; row < squareStartRow + SquareSize; ++row) {
-        for (int col = squareStartCol; col < squareStartCol + SquareSize; ++col) {
-            if (value[row][col] != Blank && !(row == i && col == j)) {
-                conflicts[i][j].push_back(value[row][col]);
-            }
-        }
-    }
+    for (int row = rowStart; row < rowStart + SquareSize; row++)
+        for (int col = colStart; col < colStart + SquareSize; col++)
+            conflicts[row][col][val] += increment;  // Increments the square conflicts
 }
 
-/** @brief Sets the value of a cell
- * @param i The row of the cell
- * @param j The column of the cell
- * @param val The value of the cell
+/** @brief Undoes changes to the conflicts matrix
+ * @param i The row to update
+ * @param j The column to update
+ * @param val The value to update
+ * @param increment The amount to increment by
  * @return None
- */
+*/
+void board::undoChanges(int i, int j, int val, int increment)
+{
+    updateConflicts(i, j, val, -increment);   // Decrements the conflicts
+}
+
+/** @brief Sets a cell to a value
+ * @param i The row to update
+ * @param j The column to update
+ * @param val The value to update
+ * @return None
+*/
 void board::setCell(int i, int j, int val)
 {
+    int oldVal = value[i][j];
     value[i][j] = val;
-    updateConflicts(i, j, val);
+
+    if (oldVal != Blank)    // If the old value is not blank, undo changes
+        undoChanges(i, j, oldVal, 1);   // Undoes changes to the conflicts matrix
+
+    if (val != Blank)   // If the new value is not blank, update conflicts
+        updateConflicts(i, j, val, 1);  // Updates the conflicts matrix
 }
 
-/** @brief Clears the value of a cell
- * @param i The row of the cell
- * @param j The column of the cell
+/** @brief Clears a cell
+ * @param i The row to update
+ * @param j The column to update
  * @return None
- */
+*/
 void board::clearCell(int i, int j)
 {
-    value[i][j] = Blank;
-    updateConflicts(i, j, Blank);
+    int val = value[i][j];  // Gets the value of the cell
+    value[i][j] = Blank;    // Sets the cell to blank
+    if (val != Blank)
+        undoChanges(i, j, val, 1);  // Undoes changes to the conflicts matrix
 }
 
 /** @brief Checks if a cell is blank
- * @param i The row of the cell
- * @param j The column of the cell
+ * @param i The row to check
+ * @param j The column to check
  * @return True if the cell is blank, false otherwise
- */
+*/
 bool board::isBlank(int i, int j)
 {
-    return (value[i][j] == Blank);
+    return (value[i][j] == Blank);  // Returns true if the cell is blank, false otherwise
 }
 
 /** @brief Gets the value of a cell
- * @param i The row of the cell
- * @param j The column of the cell
+ * @param i The row to get
+ * @param j The column to get
  * @return The value of the cell
- */
+*/
 ValueType board::getCell(int i, int j)
 {
     if (i >= 1 && i <= BoardSize && j >= 1 && j <= BoardSize)
-        return value[i][j];
+        return value[i][j]; // Returns the value of the cell
     else
-        throw rangeError("bad value in getCell");
+        throw rangeError("bad value in getCell");   // Throws an error if the cell is out of range
 }
 
 /** @brief Checks if the board is solved
  * @param None
  * @return True if the board is solved, false otherwise
- */
-bool board::isSolved() {
-    for (int i = 1; i <= BoardSize; i++) {
-        for (int j = 1; j <= BoardSize; j++) {
-            // If a cell is blank, the board is not solved
-            if (isBlank(i, j)) {
-                return false;
-            }
-
-            // If a cell has conflicts, the board is not solved
-            if (!conflicts[i][j].empty()) {
-                return false;
+*/
+bool board::isSolved()
+{
+    for (int i = 1; i <= BoardSize; i++)
+    {
+        for (int j = 1; j <= BoardSize; j++)
+        {
+            if (isBlank(i, j))
+            {
+                return false;   // Returns false if the board is not solved
             }
         }
     }
 
-    // If we've checked all cells and found no blanks or conflicts, the board is solved
     return true;
 }
 
 /** @brief Prints the board
  * @param None
  * @return None
- */
+*/
 void board::print()
 {
     for (int i = 1; i <= BoardSize; i++)
     {
         if ((i - 1) % SquareSize == 0)
         {
-            cout << " -";
+            cout << " -";   // Prints the top of the square
             for (int j = 1; j <= BoardSize; j++)
-                cout << "---";
-            cout << "-" << endl;
+                cout << "---";  // Prints the top of the square
+            cout << "-" << endl;    // Prints the top of the square
         }
         for (int j = 1; j <= BoardSize; j++)
         {
             if ((j - 1) % SquareSize == 0)
-                cout << "|";
+                cout << "|";    // Prints the side of the square
             if (!isBlank(i, j))
                 cout << " " << getCell(i, j) << " ";
             else
                 cout << "   ";
         }
-        cout << "|" << endl;
+        cout << "|" << endl;    // Prints the side of the square
     }
 
-    cout << " -";
+    cout << " -";   // Prints the bottom of the square
     for (int j = 1; j <= BoardSize; j++)
-        cout << "---";
-    cout << "-" << endl;
+        cout << "---";  // Prints the bottom of the square
+    cout << "-" << endl;    // Prints the bottom of the square
 }
 
-/** @brief Prints the conflicts for each cell
+/** @brief Prints the conflicts matrix
  * @param None
  * @return None
- */
-void board::printConflicts() {
-    for (int i = 1; i <= BoardSize; i++) {
-        for (int j = 1; j <= BoardSize; j++) {
-            // Print the coordinates of the cell
-            cout << "Cell (" << i << ", " << j << "): ";
-
-            // Print the conflicts for the cell
-            for (int conflict : conflicts[i][j]) {
-                cout << conflict << " ";
-            }
-
+ * @note This is for debugging purposes
+*/
+void board::printConflicts()
+{
+    for (int i = 1; i <= BoardSize; i++)
+    {
+        for (int j = 1; j <= BoardSize; j++)
+        {
+            cout << "Cell (" << i << ", " << j << "): ";    // Prints the cell
+            for (int k = 1; k <= MaxValue; k++)
+                cout << conflicts[i][j][k] << " ";  // Prints the conflicts matrix
             cout << endl;
         }
     }
